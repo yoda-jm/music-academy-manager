@@ -3,14 +3,25 @@ import { Family, FamilyMember, PaginatedResponse, PaginationParams } from '@/typ
 
 export interface CreateFamilyData {
   name: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingPostal?: string;
 }
 
 export interface UpdateFamilyData {
   name?: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingPostal?: string;
 }
 
 export interface AddFamilyMemberData {
   userId: string;
+  relation?: string;
+  isPrimary?: boolean;
+}
+
+export interface UpdateFamilyMemberData {
   relation?: string;
   isPrimary?: boolean;
 }
@@ -44,6 +55,11 @@ export const familiesApi = {
 
   addMember: async (familyId: string, data: AddFamilyMemberData): Promise<FamilyMember> => {
     const response = await apiClient.post<FamilyMember>(`/families/${familyId}/members`, data);
+    return response.data;
+  },
+
+  updateMember: async (familyId: string, userId: string, data: UpdateFamilyMemberData): Promise<FamilyMember> => {
+    const response = await apiClient.patch<FamilyMember>(`/families/${familyId}/members/${userId}`, data);
     return response.data;
   },
 

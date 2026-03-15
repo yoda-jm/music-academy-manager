@@ -28,4 +28,30 @@ export class UpdateFamilyDto {
   @IsString()
   @IsOptional()
   name?: string;
+
+  @ApiPropertyOptional({ example: '12 Rue de la Paix' })
+  @IsString()
+  @IsOptional()
+  billingAddress?: string;
+
+  @ApiPropertyOptional({ example: 'Paris' })
+  @IsString()
+  @IsOptional()
+  billingCity?: string;
+
+  @ApiPropertyOptional({ example: '75001' })
+  @IsString()
+  @IsOptional()
+  billingPostal?: string;
+}
+
+export class UpdateFamilyMemberDto {
+  @ApiPropertyOptional({ example: 'PARENT' })
+  @IsString()
+  @IsOptional()
+  relation?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  isPrimary?: boolean;
 }

@@ -157,6 +157,9 @@ export interface Profile {
 export interface Family {
   id: string;
   name: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingPostal?: string;
   createdAt: string;
   members?: FamilyMember[];
   students?: Student[];

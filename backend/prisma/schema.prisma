@@ -157,9 +157,12 @@ model Profile {
 }
 
 model Family {
-  id        String         @id @default(cuid())
-  name      String
-  createdAt DateTime       @default(now())
+  id             String         @id @default(cuid())
+  name           String
+  billingAddress String?
+  billingCity    String?
+  billingPostal  String?
+  createdAt      DateTime       @default(now())
 
   members   FamilyMember[]
   students  Student[]

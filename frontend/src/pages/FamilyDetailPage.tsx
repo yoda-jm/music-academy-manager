@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Edit2, Trash2, UserPlus, Mail, Phone, MapPin, Pencil } from 'lucide-react';
-import { familiesApi, AddFamilyMemberData } from '@/api/families';
+import { ArrowLeft, Edit2, Trash2, UserPlus, Mail, Phone, MapPin, Pencil, Building2 } from 'lucide-react';
+import { familiesApi, AddFamilyMemberData, UpdateFamilyMemberData } from '@/api/families';
 import { usersApi } from '@/api/users';
 import { FamilyRelation } from '@/types';
 import { Button } from '@/components/ui/Button';
@@ -130,6 +130,8 @@ const editMemberSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   postalCode: z.string().optional(),
+  relation: z.nativeEnum(FamilyRelation).optional(),
+  isPrimary: z.boolean().optional(),
 });
 
 type EditMemberFormData = z.infer<typeof editMemberSchema>;
@@ -144,7 +146,7 @@ const EditMemberForm: React.FC<{
   const queryClient = useQueryClient();
   const profile = member.user?.profile;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<EditMemberFormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<EditMemberFormData>({
     resolver: zodResolver(editMemberSchema),
     defaultValues: {
       firstName: profile?.firstName || '',
@@ -153,21 +155,47 @@ const EditMemberForm: React.FC<{
       address: profile?.address || '',
       city: profile?.city || '',
       postalCode: profile?.postalCode || '',
+      relation: member.relation,
+      isPrimary: member.isPrimary,
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (data: EditMemberFormData) => usersApi.updateUserProfile(member.userId, data),
-    onSuccess: () => {
+  const watchedRelation = watch('relation');
+  const watchedIsPrimary = watch('isPrimary');
+
+  const profileMutation = useMutation({
+    mutationFn: (data: EditMemberFormData) => usersApi.updateUserProfile(member.userId, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      address: data.address,
+      city: data.city,
+      postalCode: data.postalCode,
+    }),
+    onError: () => { throw new Error('profile'); },
+  });
+
+  const memberMutation = useMutation({
+    mutationFn: (data: UpdateFamilyMemberData) => familiesApi.updateMember(familyId, member.userId, data),
+    onError: () => { throw new Error('member'); },
+  });
+
+  const onSubmit = async (data: EditMemberFormData) => {
+    try {
+      await profileMutation.mutateAsync(data);
+      await memberMutation.mutateAsync({ relation: data.relation, isPrimary: data.isPrimary });
       toast.success('Member updated');
       queryClient.invalidateQueries({ queryKey: ['families', familyId] });
       onSuccess();
-    },
-    onError: () => toast.error('Error', 'Could not update member.'),
-  });
+    } catch {
+      toast.error('Error', 'Could not update member.');
+    }
+  };
+
+  const isPending = profileMutation.isPending || memberMutation.isPending;
 
   return (
-    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Input label="First Name" {...register('firstName')} error={errors.firstName?.message} required />
         <Input label="Last Name" {...register('lastName')} error={errors.lastName?.message} required />
@@ -178,9 +206,36 @@ const EditMemberForm: React.FC<{
         <Input label="City" {...register('city')} />
         <Input label="Postal Code" {...register('postalCode')} />
       </div>
+
+      <Select
+        label="Relation"
+        options={relationOptions}
+        value={watchedRelation || FamilyRelation.OTHER}
+        onValueChange={(v) => setValue('relation', v as FamilyRelation)}
+      />
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={watchedIsPrimary}
+          onClick={() => setValue('isPrimary', !watchedIsPrimary)}
+          className={`relative inline-flex h-5 w-9 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            watchedIsPrimary ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              watchedIsPrimary ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
+        <label className="text-sm text-gray-700 dark:text-gray-300">Primary contact</label>
+      </div>
+
       <DialogFooter>
         <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" variant="primary" isLoading={mutation.isPending}>Save</Button>
+        <Button type="submit" variant="primary" isLoading={isPending}>Save</Button>
       </DialogFooter>
     </form>
   );
@@ -260,6 +315,19 @@ export default function FamilyDetailPage() {
           Edit
         </Button>
       </div>
+
+      {/* Billing Address */}
+      {(family.billingAddress || family.billingCity || family.billingPostal) && (
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-start gap-3">
+          <Building2 className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Billing Address</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {[family.billingAddress, family.billingPostal, family.billingCity].filter(Boolean).join(', ')}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Students */}

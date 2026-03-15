@@ -12,7 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FamiliesService } from './families.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
-import { CreateFamilyDto, UpdateFamilyDto, AddFamilyMemberDto } from './dto/create-family.dto';
+import { CreateFamilyDto, UpdateFamilyDto, AddFamilyMemberDto, UpdateFamilyMemberDto } from './dto/create-family.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -68,6 +68,17 @@ export class FamiliesController {
     @Body() dto: AddFamilyMemberDto,
   ) {
     return this.familiesService.addMember(id, dto);
+  }
+
+  @Patch(':id/members/:userId')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.RECEPTIONIST)
+  @ApiOperation({ summary: 'Update family member relation/isPrimary' })
+  async updateMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateFamilyMemberDto,
+  ) {
+    return this.familiesService.updateMember(id, userId, dto);
   }
 
   @Delete(':id/members/:userId')

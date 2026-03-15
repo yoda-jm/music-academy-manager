@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { getPaginationParams, paginatedResponse } from '../../common/utils/pagination.util';
-import { CreateFamilyDto, UpdateFamilyDto, AddFamilyMemberDto } from './dto/create-family.dto';
+import { CreateFamilyDto, UpdateFamilyDto, AddFamilyMemberDto, UpdateFamilyMemberDto } from './dto/create-family.dto';
 import { FamilyRelation } from '@prisma/client';
 
 @Injectable()
@@ -142,6 +142,27 @@ export class FamiliesService {
       include: {
         user: { include: { profile: true } },
       },
+    });
+  }
+
+  async updateMember(familyId: string, userId: string, dto: UpdateFamilyMemberDto) {
+    await this.findOne(familyId);
+
+    const member = await this.prisma.familyMember.findUnique({
+      where: { familyId_userId: { familyId, userId } },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Family member not found');
+    }
+
+    return this.prisma.familyMember.update({
+      where: { familyId_userId: { familyId, userId } },
+      data: {
+        ...(dto.relation && { relation: dto.relation as FamilyRelation }),
+        ...(dto.isPrimary !== undefined && { isPrimary: dto.isPrimary }),
+      },
+      include: { user: { include: { profile: true } } },
     });
   }
 

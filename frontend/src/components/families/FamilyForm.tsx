@@ -12,6 +12,9 @@ import { useToast } from '@/components/ui/Toast';
 
 const schema = z.object({
   name: z.string().min(1, 'Family name is required'),
+  billingAddress: z.string().optional(),
+  billingCity: z.string().optional(),
+  billingPostal: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -33,7 +36,14 @@ export const FamilyForm: React.FC<FamilyFormProps> = ({ family, onSuccess, onCan
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: isEdit ? { name: family.name } : {},
+    defaultValues: isEdit
+      ? {
+          name: family.name,
+          billingAddress: family.billingAddress || '',
+          billingCity: family.billingCity || '',
+          billingPostal: family.billingPostal || '',
+        }
+      : {},
   });
 
   const createMutation = useMutation({
@@ -72,6 +82,29 @@ export const FamilyForm: React.FC<FamilyFormProps> = ({ family, onSuccess, onCan
         error={errors.name?.message}
         required
       />
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Billing Address</p>
+        <div className="space-y-3">
+          <Input
+            label="Street Address"
+            placeholder="e.g. 12 Rue de la Paix"
+            {...register('billingAddress')}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="City"
+              placeholder="e.g. Paris"
+              {...register('billingCity')}
+            />
+            <Input
+              label="Postal Code"
+              placeholder="e.g. 75001"
+              {...register('billingPostal')}
+            />
+          </div>
+        </div>
+      </div>
 
       <DialogFooter>
         {onCancel && (
