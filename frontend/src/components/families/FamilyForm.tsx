@@ -1,0 +1,88 @@
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { familiesApi, CreateFamilyData } from '@/api/families';
+import { Family } from '@/types';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { DialogFooter } from '@/components/ui/Dialog';
+import { useToast } from '@/components/ui/Toast';
+
+const schema = z.object({
+  name: z.string().min(1, 'Family name is required'),
+});
+
+type FormData = z.infer<typeof schema>;
+
+interface FamilyFormProps {
+  family?: Family;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export const FamilyForm: React.FC<FamilyFormProps> = ({ family, onSuccess, onCancel }) => {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const isEdit = !!family;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: isEdit ? { name: family.name } : {},
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateFamilyData) => familiesApi.createFamily(data),
+    onSuccess: () => {
+      toast.success('Family created');
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      onSuccess?.();
+    },
+    onError: () => toast.error('Error', 'Could not create family.'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: CreateFamilyData) => familiesApi.updateFamily(family!.id, data),
+    onSuccess: () => {
+      toast.success('Family updated');
+      queryClient.invalidateQueries({ queryKey: ['families'] });
+      queryClient.invalidateQueries({ queryKey: ['families', family!.id] });
+      onSuccess?.();
+    },
+    onError: () => toast.error('Error', 'Could not update family.'),
+  });
+
+  const isLoading = createMutation.isPending || updateMutation.isPending;
+
+  const onSubmit = (data: FormData) => {
+    isEdit ? updateMutation.mutate(data) : createMutation.mutate(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <Input
+        label="Family Name"
+        placeholder="e.g. Smith Family"
+        {...register('name')}
+        error={errors.name?.message}
+        required
+      />
+
+      <DialogFooter>
+        {onCancel && (
+          <Button variant="outline" type="button" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" variant="primary" isLoading={isLoading}>
+          {isEdit ? 'Update Family' : 'Create Family'}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+};

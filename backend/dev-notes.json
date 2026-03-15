@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1773587872176",
+    "type": "note",
+    "text": "I wonder how we can distiguish people responsible (contact information), can be several (primaries, secondaries) with probably different adresses that can be edited (like divorced parent)",
+    "page": "/families/cmmrr25kz00yjlzzyw0u1qn60",
+    "ts": "2026-03-15T15:17:52.176Z"
+  },
+  {
+    "id": "1773587819748",
+    "type": "note",
+    "text": "teacher schedule also from here ?",
+    "page": "/teachers",
+    "ts": "2026-03-15T15:16:59.748Z"
+  },
+  {
+    "id": "1773587800117",
+    "type": "note",
+    "text": "no pricing rule in the database",
+    "page": "/billing/pricing",
+    "ts": "2026-03-15T15:16:40.118Z"
+  },
+  {
+    "id": "1773587699146",
+    "type": "note",
+    "text": "still no weekly ? also I would like to see a calendar probably",
+    "page": "/courses/cmmrr22pi003plzzy8yi90os8",
+    "ts": "2026-03-15T15:14:59.146Z"
+  },
+  {
+    "id": "1773587632077",
+    "type": "note",
+    "text": "very hard to understand the qualification with just 2 notes before and advanced",
+    "page": "/teachers/cmmrr22hp001llzzyysmh26yt",
+    "ts": "2026-03-15T15:13:52.077Z"
+  }
+]

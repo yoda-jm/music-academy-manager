@@ -1,0 +1,24 @@
+# Environment
+.env
+.env.local
+
+
+# All data directories — node_modules, dist, db, uploads, cache, test results
+# Default: data/  Switch env: DATA_DIR=data-e2e docker-compose up
+data*/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Prisma generated (legacy — Prisma client is now generated into node_modules)
+backend/prisma/generated/

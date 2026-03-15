@@ -1,0 +1,532 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  RECEPTIONIST
+}
+
+enum FamilyRelation {
+  PARENT
+  GUARDIAN
+  CHILD
+  SIBLING
+  OTHER
+}
+
+enum CourseType {
+  PRIVATE_LESSON
+  GROUP_INSTRUMENT
+  MUSIC_THEORY
+  WORKSHOP
+  MASTERCLASS
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentType {
+  PER_SESSION
+  MONTHLY
+  YEARLY
+  FREE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  MAKEUP
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  CHEQUE
+  ONLINE
+  OTHER
+}
+
+enum VacationType {
+  SCHOOL_HOLIDAY
+  SUMMER_BREAK
+  SPECIAL_CLOSURE
+  TEACHER_TRAINING
+  OTHER
+}
+
+enum ConvType {
+  DIRECT
+  GROUP
+  ANNOUNCEMENT
+  SUPPORT
+}
+
+enum NotifType {
+  COURSE_REMINDER
+  INVOICE_DUE
+  ATTENDANCE_MARKED
+  MESSAGE_RECEIVED
+  ENROLLMENT_CHANGE
+  SYSTEM
+  VACATION_NOTICE
+  ABSENCE
+}
+
+enum EventParticipantRole {
+  PERFORMER
+  ATTENDEE
+  STAFF
+  ORGANIZER
+}
+
+enum EventFileType {
+  PROGRAM
+  AFFICHE
+  PLAYLIST
+  SPEECH
+  OTHER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(STUDENT)
+  isActive     Boolean   @default(true)
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile                Profile?
+  teacher                Teacher?
+  student                Student?
+  familyMembers          FamilyMember[]
+  sentMessages           Message[]                  @relation("SentMessages")
+  conversationParticipants ConversationParticipant[]
+  notifications          Notification[]
+  eventParticipants      EventParticipant[]
+}
+
+model Profile {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName  String
+  lastName   String
+  phone      String?
+  address    String?
+  city       String?
+  postalCode String?
+  birthDate  DateTime?
+  avatarUrl  String?
+  notes      String?
+}
+
+model Family {
+  id        String         @id @default(cuid())
+  name      String
+  createdAt DateTime       @default(now())
+
+  members   FamilyMember[]
+  students  Student[]
+  invoices  Invoice[]
+}
+
+model FamilyMember {
+  id        String         @id @default(cuid())
+  familyId  String
+  family    Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relation  FamilyRelation @default(OTHER)
+  isPrimary Boolean        @default(false)
+
+  @@unique([familyId, userId])
+}
+
+model Teacher {
+  id              String                @id @default(cuid())
+  userId          String                @unique
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  hourlyRate      Decimal?              @db.Decimal(10, 2)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  specializations TeacherInstrument[]
+  courses         Course[]
+  availability    TeacherAvailability[]
+}
+
+model Student {
+  id          String              @id @default(cuid())
+  userId      String              @unique
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId    String?
+  family      Family?             @relation(fields: [familyId], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  enrollments  Enrollment[]
+  attendance   Attendance[]
+  instruments  StudentInstrument[]
+  invoiceItems InvoiceItem[]
+}
+
+model Instrument {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String
+
+  teachers      TeacherInstrument[]
+  students      StudentInstrument[]
+  courses       Course[]
+  pricingRules  PricingRule[]
+}
+
+model TeacherInstrument {
+  teacherId    String
+  teacher      Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  level        String     @default("INTERMEDIATE")
+
+  @@id([teacherId, instrumentId])
+}
+
+model StudentInstrument {
+  studentId    String
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  level        String     @default("BEGINNER")
+  startDate    DateTime   @default(now())
+  notes        String?
+
+  @@id([studentId, instrumentId])
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  capacity  Int      @default(1)
+  equipment String[]
+  color     String   @default("#3B82F6")
+  floor     String?
+  isActive  Boolean  @default(true)
+  notes     String?
+
+  courses Course[]
+}
+
+model Course {
+  id               String     @id @default(cuid())
+  name             String
+  type             CourseType
+  description      String?
+  teacherId        String
+  teacher          Teacher    @relation(fields: [teacherId], references: [id])
+  roomId           String
+  room             Room       @relation(fields: [roomId], references: [id])
+  instrumentId     String?
+  instrument       Instrument? @relation(fields: [instrumentId], references: [id])
+  maxStudents      Int        @default(1)
+  durationMinutes  Int        @default(60)
+  color            String     @default("#8B5CF6")
+  isActive         Boolean    @default(true)
+  recurrenceRule   String?
+  pricePerSession  Decimal?   @db.Decimal(10, 2)
+  priceMonthly     Decimal?   @db.Decimal(10, 2)
+  priceYearly      Decimal?   @db.Decimal(10, 2)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  sessions    CourseSession[]
+  enrollments Enrollment[]
+}
+
+model CourseSession {
+  id           String        @id @default(cuid())
+  courseId     String
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  startTime    DateTime
+  endTime      DateTime
+  status       SessionStatus @default(SCHEDULED)
+  notes        String?
+  isCancelled  Boolean       @default(false)
+  cancelReason String?
+  createdAt    DateTime      @default(now())
+
+  attendance Attendance[]
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  studentId   String
+  student     Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  startDate   DateTime
+  endDate     DateTime?
+  status      EnrollmentStatus @default(ACTIVE)
+  paymentType PaymentType      @default(PER_SESSION)
+  notes       String?
+  createdAt   DateTime         @default(now())
+
+  @@unique([studentId, courseId])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  sessionId   String
+  session     CourseSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status      AttendanceStatus @default(PRESENT)
+  notes       String?
+  markedAt    DateTime         @default(now())
+  markedById  String?
+
+  @@unique([sessionId, studentId])
+}
+
+model TeacherAvailability {
+  id          String  @id @default(cuid())
+  teacherId   String
+  teacher     Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isRecurring Boolean @default(true)
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  familyId    String?
+  family      Family?       @relation(fields: [familyId], references: [id])
+  studentId   String?
+  periodStart DateTime
+  periodEnd   DateTime
+  dueDate     DateTime
+  status      InvoiceStatus @default(DRAFT)
+  subtotal    Decimal       @db.Decimal(10, 2)
+  discount    Decimal       @default(0) @db.Decimal(10, 2)
+  total       Decimal       @db.Decimal(10, 2)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  studentId   String?
+  student     Student? @relation(fields: [studentId], references: [id])
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  courseId    String?
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  invoiceId String
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod @default(CASH)
+  reference String?
+  paidAt    DateTime      @default(now())
+  notes     String?
+  createdAt DateTime      @default(now())
+}
+
+model PricingRule {
+  id              String      @id @default(cuid())
+  name            String
+  courseType      CourseType?
+  instrumentId    String?
+  instrument      Instrument? @relation(fields: [instrumentId], references: [id])
+  pricePerSession Decimal?    @db.Decimal(10, 2)
+  priceMonthly    Decimal?    @db.Decimal(10, 2)
+  priceYearly     Decimal?    @db.Decimal(10, 2)
+  isDefault       Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+}
+
+// Subscription plan: yearly base includes N private lessons + N group courses
+model SubscriptionPlan {
+  id                       String   @id @default(cuid())
+  name                     String
+  description              String?
+  yearlyPrice              Decimal  @db.Decimal(10, 2)
+  includedPrivateLessons   Int      @default(1)  // nb of individual instrument courses included
+  includedGroupCourses     Int      @default(1)  // nb of group theory/FM courses included
+  extraPrivateLessonPrice  Decimal? @db.Decimal(10, 2) // price per additional private lesson/year
+  extraGroupCoursePrice    Decimal? @db.Decimal(10, 2) // price per additional group course/year
+  orchestraPrice           Decimal? @db.Decimal(10, 2) // yearly add-on for orchestra
+  choirPrice               Decimal? @db.Decimal(10, 2) // yearly add-on for choir
+  workshopPricePerSession  Decimal? @db.Decimal(10, 2)
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+}
+
+// Family discount rules: nth child onwards gets X% off
+model FamilyDiscountRule {
+  id              String   @id @default(cuid())
+  name            String
+  minChildRank    Int      // discount applies from this child number (e.g. 3 = 3rd child and beyond)
+  discountPercent Decimal  @db.Decimal(5, 2)
+  createdAt       DateTime @default(now())
+}
+
+// Category-level discount on instruments (e.g. brass = 15% off)
+model InstrumentCategoryDiscount {
+  id              String   @id @default(cuid())
+  category        String   // matches Instrument.category
+  discountPercent Decimal  @db.Decimal(5, 2)
+  name            String?
+  createdAt       DateTime @default(now())
+
+  @@unique([category])
+}
+
+model Vacation {
+  id             String       @id @default(cuid())
+  name           String
+  startDate      DateTime
+  endDate        DateTime
+  type           VacationType @default(SCHOOL_HOLIDAY)
+  affectsCourses Boolean      @default(true)
+  color          String       @default("#F59E0B")
+  createdAt      DateTime     @default(now())
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  name      String?
+  type      ConvType  @default(DIRECT)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  isAdmin        Boolean      @default(false)
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  content        String
+  attachments    String[]
+  isEdited       Boolean      @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotifType
+  title     String
+  content   String
+  link      String?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  isAllDay    Boolean   @default(false)
+  location    String?
+  isPublic    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants EventParticipant[]
+  files        EventFile[]
+}
+
+model EventParticipant {
+  id        String               @id @default(cuid())
+  eventId   String
+  event     Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      EventParticipantRole @default(ATTENDEE)
+  notes     String?
+  createdAt DateTime             @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model EventFile {
+  id        String        @id @default(cuid())
+  eventId   String
+  event     Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  fileUrl   String
+  fileType  EventFileType @default(OTHER)
+  mimeType  String?
+  size      Int?
+  createdAt DateTime      @default(now())
+}
