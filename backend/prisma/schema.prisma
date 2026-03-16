@@ -533,3 +533,12 @@ model EventFile {
   size      Int?
   createdAt DateTime      @default(now())
 }
+
+
+model AcademyConfig {
+  id        String   @id @default("singleton")
+  openTime  Int      @default(8)   // opening hour (0-23)
+  closeTime Int      @default(22)  // closing hour (0-23)
+  openDays  Int[]                  // day numbers: 0=Sun,1=Mon,...,6=Sat
+  updatedAt DateTime @updatedAt
+}

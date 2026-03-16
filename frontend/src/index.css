@@ -164,3 +164,11 @@ textarea {
   transition-timing-function: ease;
   transition-duration: 150ms;
 }
+
+/* Calendar: closed / off-hours slots */
+.rbc-off-hours {
+  background-color: #f8fafc !important;
+}
+.dark .rbc-off-hours {
+  background-color: #0f172a !important;
+}

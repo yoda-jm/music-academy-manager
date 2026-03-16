@@ -44,6 +44,12 @@ interface CalendarEvent {
   color?: string;
 }
 
+export interface AcademyHours {
+  openTime: number;   // 0-23
+  closeTime: number;  // 0-23
+  openDays: number[]; // 0=Sun … 6=Sat
+}
+
 interface AcademyCalendarProps {
   teacherFilter?: string;
   roomFilter?: string;
@@ -54,6 +60,7 @@ interface AcademyCalendarProps {
   teacherOptions?: { value: string; label: string }[];
   roomOptions?: { value: string; label: string }[];
   studentOptions?: { value: string; label: string }[];
+  openHours?: AcademyHours;
   className?: string;
 }
 
@@ -114,6 +121,11 @@ const CustomToolbar: React.FC<{
   </div>
 );
 
+const DEFAULT_HOURS: AcademyHours = { openTime: 8, closeTime: 22, openDays: [1, 2, 3, 4, 5, 6] };
+
+// Stable 9 AM scroll target
+const SCROLL_TO_9AM = new Date(1970, 0, 1, 9, 0, 0);
+
 export const AcademyCalendar: React.FC<AcademyCalendarProps> = ({
   teacherFilter,
   roomFilter,
@@ -124,6 +136,7 @@ export const AcademyCalendar: React.FC<AcademyCalendarProps> = ({
   teacherOptions = [],
   roomOptions = [],
   studentOptions = [],
+  openHours = DEFAULT_HOURS,
   className,
 }) => {
   const [view, setView] = useState<View>('week');
@@ -227,6 +240,14 @@ export const AcademyCalendar: React.FC<AcademyCalendarProps> = ({
     };
   }, []);
 
+  const slotPropGetter = useCallback((slotDate: Date) => {
+    const hour = slotDate.getHours();
+    const day = slotDate.getDay();
+    const isOpen = openHours.openDays.includes(day) && hour >= openHours.openTime && hour < openHours.closeTime;
+    if (!isOpen) return { className: 'rbc-off-hours' };
+    return {};
+  }, [openHours]);
+
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     if (event.type === 'session' && event.resource) {
       const session = event.resource as CourseSession;
@@ -322,6 +343,8 @@ export const AcademyCalendar: React.FC<AcademyCalendarProps> = ({
               agendaHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
                 `${fmtDate(start, 'MMM d')} – ${fmtDate(end, 'MMM d, yyyy')}`,
             }}
+            scrollToTime={SCROLL_TO_9AM}
+            slotPropGetter={slotPropGetter}
             popup
             showAllEvents
           />

@@ -4,13 +4,14 @@ import { useSearchParams } from 'react-router-dom';
 import { teachersApi } from '@/api/teachers';
 import { roomsApi } from '@/api/rooms';
 import { studentsApi } from '@/api/students';
+import { settingsApi } from '@/api/settings';
 import { AcademyCalendar } from '@/components/calendar/AcademyCalendar';
 import { useAuthStore } from '@/store/auth.store';
 import { Role } from '@/types';
 
 export default function CalendarPage() {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === Role.ADMIN || user?.role === Role.SUPER_ADMIN;
+  const isAdmin = user?.role === Role.ADMIN || user?.role === Role.SUPER_ADMIN || user?.role === Role.RECEPTIONIST;
   const [searchParams] = useSearchParams();
 
   const [teacherFilter, setTeacherFilter] = useState(searchParams.get('teacher') || '');
@@ -33,6 +34,11 @@ export default function CalendarPage() {
     queryKey: ['students', 'list'],
     queryFn: () => studentsApi.getStudents({ page: 1, limit: 200 }),
     enabled: isAdmin,
+  });
+
+  const { data: academyConfig } = useQuery({
+    queryKey: ['settings', 'academy'],
+    queryFn: settingsApi.getAcademyConfig,
   });
 
   const teacherOptions = (teachersData?.data || []).map((t) => ({
@@ -73,6 +79,7 @@ export default function CalendarPage() {
         teacherOptions={isAdmin ? teacherOptions : []}
         roomOptions={isAdmin ? roomOptions : []}
         studentOptions={isAdmin ? studentOptions : []}
+        openHours={academyConfig ?? undefined}
       />
     </div>
   );

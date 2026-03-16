@@ -21,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { EventsModule } from './modules/events/events.module';
 import { DevNotesModule } from './modules/dev-notes/dev-notes.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
@@ -67,6 +68,7 @@ import jwtConfig from './config/jwt.config';
     ReportsModule,
     EventsModule,
     DevNotesModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}
