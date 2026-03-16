@@ -499,7 +499,7 @@ export default function FamilyDetailPage() {
       </div>
 
       {/* Edit dialog */}
-      <Dialog open={showEdit} onOpenChange={setShowEdit} title="Edit Family" size="sm">
+      <Dialog open={showEdit} onOpenChange={setShowEdit} title="Edit Family" size="md">
         <FamilyForm
           family={family}
           onSuccess={() => setShowEdit(false)}
@@ -517,7 +517,7 @@ export default function FamilyDetailPage() {
       </Dialog>
 
       {/* Edit member dialog */}
-      <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)} title="Edit Member" size="sm">
+      <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)} title="Edit Member" size="md">
         {editingMember && (
           <EditMemberForm
             member={editingMember}
